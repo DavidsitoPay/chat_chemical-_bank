@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ room_name }}</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+    />
+  </head>
+  <body style="height: 100vh; display: flex; flex-direction: column">
+    <style>
+      .chat-message img {
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+
+
+      .profile-icon {
+        color: #12151a;
+      }
+
+      .chat-container {
+        flex: 1;
+      }
+
+      #chatbox {
+        /* border-radius: 10px; */
+        background-color: #f8f9fa;
+        overflow-y: auto;
+        height: calc(100vh - 180px);
+        padding: 10px;
+      }
+
+      .chat-message {
+        border-radius: 8px;
+        padding: 10px;
+        display: inline-block;
+        max-width: 60%; 
+        margin-bottom: 10px;
+        clear: both;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+
+
+      .chat-message.sender {
+        background-color: #ffffff;
+        color: #435f7a;
+        margin-left: auto;
+        text-align: right;
+      }
+
+      .chat-message.receiver {
+        background-color: #435f7a;
+        color: white;
+        margin-right: auto;
+        text-align: left;
+      }
+
+      .chat-input {
+        background-color: white;
+      }
+
+      .chat-input button {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        background: #435f7a;
+        color: white;
+        border: none;
+      }
+
+      .chat-input button:hover {
+        background: #2c3e50;
+      }
+
+      .sidebar {
+        background-color: #2c3e50;
+        overflow-y: auto;
+      }
+
+      .sidebar a {
+        background: #2c3e50;
+        color: white;
+      }
+      .sidebar i {
+        color: white;
+      }
+
+      .chats .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+        padding: 25px 25px 15px 30px;
+        font-size: 18px;
+      }
+
+      .chats .list-group-item:hover {
+        background-color: #435f7a;
+        color: white;
+      }
+
+      /* change border bottom color of the item in the list  */
+      .chats .list-group-item {
+        border-bottom: 1px solid #435f7a;
+        width: 105%;
+      }
+
+      .active {
+        background-color: #435f7a !important;
+        color: white;
+      }
+
+      .logout {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        padding: 10px;
+        background-color: #2c3e50;
+      }
+    </style>
+
+    <div class="container-fluid h-100">
+      <div class="row h-100">
+        <!-- User List Sidebar (4 Columns) -->
+        <div class="col-3 sidebar p-3 chats">
+          <h5 class="mb-3 text-white">Chats</h5>
+          <div class="contacts">
+            {% for item in user_last_messages %}
+            <a
+              href="{% url 'chat' item.user.username %}"
+              class="list-group-item list-group-item-action {% if item.user.username == room_name %} active {% endif %}"
+              data-id="{{ room_name }}"
+            >
+              <div class="d-flex align-items-center">
+                <!-- Profile Icon -->
+                <img
+                  src="https://ui-avatars.com/api/?name={{ item.user.username|urlencode }}&size=64&background=random"
+                  alt="{{ item.user.username }}'s Profile Image"
+                  class="profile-icon rounded-circle mr-3"
+                  style="width: 1.8rem; height: 1.8rem; object-fit: cover"
+                />
+
+                <!-- Message Content and Username -->
+                <div class="w-100">
+                  <div class="d-flex justify-content-between">
+                    <strong class="text-truncate"
+                      >{{ item.user.username }}</strong
+                    >
+                    {% if item.last_message %}
+                    <small class="text-nowrap timestamp">
+                      {{ item.last_message.timestamp|date:"H:i" }}</small
+                    >
+                    {% endif %}
+                  </div>
+
+                  <!-- Last message preview -->
+                  <div>
+                    {% if item.last_message %}
+                    <small
+                      class="d-block text-truncate last-msg"
+                      style="max-width: 90%"
+                      id="last-message"
+                    >
+                      {% if item.last_message.sender == request.user %} You: 
+                      {% endif %} {{ item.last_message.content|truncatewords:5 }}
+                    </small>
+                    {% else %}
+                    <small class="">Empieza a chatear</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+
+          <div class="logout">
+            <h5 class="text-white">
+              <i class="fas fa-user"></i>
+              {{ request.user.username|title }}
+            </h5>
+            <h5 style="cursor: pointer; font-size: 1rem; margin-top: 5px">
+              <i class="fas fa-sign-out-alt" style="color: red"></i>
+              <a href="{% url 'logout' %}" class="text-white">Salir</a>
+            </h5>
+          </div>
+        </div>
+
+        <!-- Chat Area (8 Columns) -->
+        <div class="col-9 d-flex flex-column chat" data-id="{{ room_name }}">
+          <!-- Chat Header -->
+          <div class="d-flex align-items-center p-1">
+            <img
+              src="https://ui-avatars.com/api/?name={{ room_name|urlencode }}&size=64&background=random"
+              style="border-radius: 50%; height: 45px; width: auto"
+            />
+            <h3 class="display-5 mb-0" style="padding-left: 10px">
+              {{ room_name }}
+            </h3>
+
+            <!-- Search Form aligned to the right -->
+            <form method="GET" action="" class="p-3 ml-auto">
+              <div class="form-group mb-0">
+                <input
+                  type="text"
+                  name="search"
+                  id="searchInput"
+                  class="form-control"
+                  placeholder="Busca un mensaje..."
+                  value="{{ search_query }}"
+                />
+              </div>
+            </form>
+          </div>
+
+          <!-- Chatbox -->
+          <div id="chatbox" class="chatbox flex-fill p-3">
+            {% if chats %}
+              {% for message in chats %}
+                <div
+                  class="chat-message {% if message.sender == request.user %} sender {% else %} receiver {% endif %}"
+                  style="margin-bottom: 20px; display: flex; flex-direction: column;"
+                >
+
+                  {# Primero el archivo, si existe #}
+                  {% if message.file %}
+                    {% if message.file.url %}
+                      {% with ext=message.file.name|lower|slice:"-4:" %}
+                        {% if ext == ".jpg" or ext == ".png" or ext == ".gif" or ext == "jpeg" %}
+                          <div>
+                            <img src="{{ message.file.url }}" alt="{{ message.file.name|cut:'chat_files/' }}"
+                                style="max-width: 200px; max-height: 200px; border-radius: 8px;" />
+                          </div>
+                        {% elif ext == ".mp4" or ext == ".webm" or ext == ".ogg" %}
+                          <div>
+                            <video controls style="max-width: 300px; max-height: 200px; border-radius: 8px;">
+                              <source src="{{ message.file.url }}" type="video/{{ ext|slice:"1:" }}">
+                              Tu navegador no soporta el elemento de video.
+                            </video>
+                          </div>
+                        {% else %}
+                          <div>
+                            <a href="{{ message.file.url }}" download="{{ message.file.name|cut:'chat_files/' }}"
+                              style="text-decoration:none; color:{% if message.sender == request.user %}#007bff{% else %}#d6eaf8{% endif %};">
+                              Descargar: {{ message.file.name|cut:'chat_files/' }}
+                            </a>
+
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                      <hr style="margin: 10px 0;">  {# Línea divisoria entre archivo y mensaje #}
+                    {% endif %}
+                  {% endif %}
+
+                  {# Contenido del mensaje #}
+                  <div style="word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">
+                    {{ message.content }}
+                  </div>
+
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="no-messages">Sin mensajes...</p>
+            {% endif %}
+          </div>
+
+
+
+          <!-- Message Input -->
+          <div class="chat-input p-3">
+            <form method="POST" enctype="multipart/form-data" id="chat-form">
+              {% csrf_token %}
+              <div class="input-group">
+                <input
+                  type="text"
+                  id="my_input"
+                  name="content"
+                  class="form-control"
+                  placeholder="Escribe un mensaje..."
+                />
+                <input
+                  type="file"
+                  id="file_input"
+                  name="file"
+                  class="form-control-file"
+                  style="display: none"
+                />
+                <small id="file-name-display" style="display:none; margin: 5px; color: #555;"></small>
+                <div class="input-group-append">
+                  <button type="button" class="btn btn-secondary" onclick="document.getElementById('file_input').click();">
+                    <i class="fas fa-paperclip"></i>
+                  </button>
+                  <button
+                    id="submit_button"
+                    class="btn btn-primary"
+                    type="submit"
+                  >
+                    Enviar
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para imagen grande -->
+    <div id="imageModal" style="
+      display:none;
+      position: fixed;
+      z-index: 1050;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+    ">
+      <span id="closeModal" style="
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        color: white;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+      ">&times;</span>
+      <img id="modalImg" src="" alt="Imagen ampliada" style="
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 8px;
+        box-shadow: 0 0 20px white;
+      "/>
+    </div>
+
+    <script>
+      const chatbox = document.querySelector("#chatbox");
+
+      // Function to scroll to the bottom of the chatbox
+      function scrollToBottom() {
+        chatbox.scrollTop = chatbox.scrollHeight;
+      }
+
+      // Scroll to bottom when the page is loaded
+      scrollToBottom();
+
+      const chatSocket = new WebSocket(
+        "ws://" + window.location.host + "/ws/chat/{{ room_name }}/"
+      );
+
+      chatSocket.onopen = function (e) {
+        console.log("The connection was set up successfully!");
+      };
+      chatSocket.onclose = function (e) {
+        console.log("Something unexpected happened!");
+      };
+
+      document.querySelector("#my_input").focus();
+      document.querySelector("#my_input").onkeyup = function (e) {
+        if (e.keyCode == 13) {
+          e.preventDefault();
+          document.querySelector("#submit_button").click();
+        }
+      };
+
+      // NUEVO: Mostrar nombre de archivo seleccionado
+      const fileInput = document.querySelector("#file_input");
+      const fileNameDisplay = document.querySelector("#file-name-display");
+
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files.length > 0) {
+          fileNameDisplay.style.display = "inline";
+          fileNameDisplay.textContent = `Archivo: ${fileInput.files[0].name}`;
+        } else {
+          fileNameDisplay.style.display = "none";
+          fileNameDisplay.textContent = "";
+        }
+      });
+
+      document.querySelector("#submit_button").onclick = function (e) {
+        e.preventDefault();
+
+        const messageInput = document.querySelector("#my_input").value.trim();
+        const file = fileInput.files[0];
+
+        if (!messageInput && !file) {
+          return;
+        }
+
+        if (file) {
+          // Leer archivo y enviar cuando esté listo
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            chatSocket.send(
+              JSON.stringify({
+                message: messageInput,
+                file: event.target.result, // archivo base64 con prefijo data:<mime>;base64,...
+                file_name: file.name,
+                file_type: file.type,
+                username: "{{ request.user.username }}",
+                room_name: "{{ room_name }}",
+              })
+            );
+            // Limpiar inputs y ocultar nombre de archivo
+            document.querySelector("#my_input").value = "";
+            fileInput.value = "";
+            fileNameDisplay.style.display = "none";
+            fileNameDisplay.textContent = "";
+          };
+          reader.readAsDataURL(file);
+        } else {
+          // Solo mensaje de texto, sin archivo
+          chatSocket.send(
+            JSON.stringify({
+              message: messageInput,
+              username: "{{ request.user.username }}",
+              room_name: "{{ room_name }}",
+            })
+          );
+          document.querySelector("#my_input").value = "";
+          fileNameDisplay.style.display = "none";
+          fileNameDisplay.textContent = "";
+        }
+      };
+
+      // Manejar recepción de mensajes (texto + archivo)
+      chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+
+        if (data.message !== undefined && data.sender !== undefined) {
+          const noMessages = document.querySelector(".no-messages");
+          if (noMessages) {
+            noMessages.style.display = "none";
+          }
+
+          const div = document.createElement("div");
+          div.className =
+            "chat-message " +
+            (data.sender === "{{ request.user.username }}" ? "sender" : "receiver");
+
+          // Aplica estilos inline para igualar el frontend
+          div.style.marginBottom = "20px";
+          div.style.display = "flex";
+          div.style.flexDirection = "column";
+
+          // Construir contenido: archivo (si hay) primero, luego mensaje
+          let contentHTML = "";
+
+          // Mostrar archivo como en el template
+          if (data.file_url) {
+            const ext = data.file_name
+              ? data.file_name.toLowerCase().slice(-4)
+              : "";
+
+            // Imágenes
+            if (
+              ext === ".jpg" ||
+              ext === ".png" ||
+              ext === ".gif" ||
+              ext === "jpeg"
+            ) {
+              contentHTML += `
+                <div>
+                  <img src="${data.file_url}" alt="${data.file_name}"
+                      style="max-width: 200px; max-height: 200px; border-radius: 8px;" />
+                </div>
+                <hr style="margin: 10px 0;">
+              `;
+            }
+            // Videos
+            else if (ext === ".mp4" || ext === ".webm" || ext === ".ogg") {
+              contentHTML += `
+                <div>
+                  <video controls style="max-width: 300px; max-height: 200px; border-radius: 8px;">
+                    <source src="${data.file_url}" type="video/${ext.slice(1)}">
+                    Tu navegador no soporta el elemento de video.
+                  </video>
+                </div>
+                <hr style="margin: 10px 0;">
+              `;
+            }
+            // Otros archivos
+            else {
+              const isSender = data.sender === "{{ request.user.username }}";
+              const linkColor = isSender ? "#007bff" : "#d6eaf8";
+
+              contentHTML += `
+                <div>
+                  <a href="${data.file_url}" download="${data.file_name}"
+                    style="text-decoration:none; color:${linkColor};">
+                    Descargar: ${data.file_name}
+                  </a>
+                </div>
+                <hr style="margin: 10px 0;">
+              `;
+            }
+          }
+
+          // Después el mensaje de texto, igual que el template
+          contentHTML += `
+            <div style="word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">
+              ${data.message}
+            </div>
+          `;
+
+          div.innerHTML = contentHTML;
+          chatbox.appendChild(div);
+          scrollToBottom();
+
+          // Actualizar último mensaje en la lista de chats
+          const lastMessage = document.querySelector(
+            ".list-group-item.active #last-message"
+          );
+          if (lastMessage) {
+            lastMessage.innerHTML =
+              data.sender === "{{ request.user.username }}"
+                ? "You: " + data.message
+                : data.message;
+
+            // Actualizar timestamp (hora UTC hh:mm)
+            const timestamp = document.querySelector(".list-group-item.active small");
+            const date = new Date().toUTCString();
+            timestamp.innerHTML = date.slice(17, 22);
+
+            // Reordenar chats por timestamp descendente
+            const chats = document.querySelectorAll(".list-group-item");
+            const chatsArray = Array.from(chats);
+            const chatsSorted = chatsArray.sort((a, b) => {
+              const aTime = a.querySelector("small").innerHTML;
+              const bTime = b.querySelector("small").innerHTML;
+              return aTime < bTime ? 1 : -1;
+            });
+
+            const contacts = document.querySelector(".contacts");
+            contacts.innerHTML = "";
+            chatsSorted.forEach((chat) => {
+              contacts.appendChild(chat);
+            });
+          } else {
+            console.error("No active chat selected");
+          }
+        } else {
+          console.error("Message or sender data is missing:", data);
+        }
+      };
+
+      // Seleccionar modal y elementos internos
+      const imageModal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImg');
+      const closeModal = document.getElementById('closeModal');
+
+      // Delegación de evento: abrir modal al hacer clic en cualquier imagen dentro del chatbox
+      chatbox.addEventListener('click', function (event) {
+        const target = event.target;
+        if (target.tagName === 'IMG' && target.closest('.chat-message')) {
+          // Mostrar modal con la imagen clickeada
+          modalImg.src = target.src;
+          imageModal.style.display = 'flex';
+        }
+      });
+
+      // Cerrar modal al hacer clic en la X
+      closeModal.addEventListener('click', () => {
+        imageModal.style.display = 'none';
+        modalImg.src = '';
+      });
+
+      // Cerrar modal si se hace clic fuera de la imagen
+      imageModal.addEventListener('click', (event) => {
+        if (event.target === imageModal) {
+          imageModal.style.display = 'none';
+          modalImg.src = '';
+        }
+      });
+    </script>
+
+  </body>
+</html>
